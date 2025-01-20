@@ -27,7 +27,7 @@ export const imageValidator = (size: number, mime: string) => {
   return null;
 };
 
-export const bytesToMb = (bytes) => {
+export const bytesToMb = (bytes: number) => {
   return bytes / (1024 * 1024);
 };
 

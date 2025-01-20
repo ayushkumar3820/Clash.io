@@ -1,19 +1,15 @@
+import Redis from 'ioredis';
 import { ConnectionOptions, DefaultJobOptions } from "bullmq";
-import IORedis from "ioredis";
 
-// export const redisConnection:ConnectionOptions = {
-//     host: process.env.REDIS_HOST,
-//     port: 6379,
-//     password:process.env.REDIS_PASSWORD,
-
-//   };
-
-export const redisConnection: ConnectionOptions = new IORedis.default({
-  host: process.env.REDIS_HOST,
-  port: 6379,
-  maxLoadingRetryTime: null,
+const redisOptions: Redis.RedisOptions = {
+  host: process.env.REDIS_HOST || "localhost",
+  port: parseInt(process.env.REDIS_PORT || "6379", 10),
+  password: process.env.REDIS_PASSWORD,
+  maxLoadingRetryTime: undefined,
   maxRetriesPerRequest: null,
-});
+};
+
+export const redisConnection = new Redis(redisOptions as any );
 
 export const defaultQueueConfig: DefaultJobOptions = {
   removeOnComplete: {

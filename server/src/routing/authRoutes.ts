@@ -63,7 +63,7 @@ router.post("/login", authLimiter, async (req: Request, res: Response) => {
       email: user.email,
     };
 
-    const token = jwt.sign(JWTPayload, process.env.JWT_SECRET, {
+    const token = jwt.sign(JWTPayload, process.env.JWT_SECRET!, {
       expiresIn: "365d",
     });
 
@@ -186,7 +186,7 @@ router.post("/register", authLimiter, async (req: Request, res: Response) => {
     });
     return res.json({ message: "User created successfully!" });
   } catch (error) {
-    console.log("The errir is ", error);
+    console.log("The error is ", error);
     if (error instanceof ZodError) {
       const errors = formatError(error);
       res.status(422).json({ message: "Invalid data", errors });
@@ -294,7 +294,7 @@ router.post(
         });
       }
 
-      const hoursDiff = checkDateHourDifference(user.token_send_at);
+      const hoursDiff = checkDateHourDifference(user.token_send_at!);
       if (hoursDiff > 2) {
         return res.status(422).json({
           errors: {

@@ -148,10 +148,10 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
       select: { image: true, user_id: true },
       where: { id: Number(id) },
     });
-    if (clash.user_id !== req.user?.id) {
+    if (clash?.user_id!== req.user?.id) {
       return res.status(401).json({ message: "Un Authorized" });
     }
-    if (clash.image) removeImage(clash.image);
+    if (clash?.image) removeImage(clash?.image);
     const clashItems = await prisma.clashItem.findMany({
       select: {
         image: true,
@@ -182,9 +182,12 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
 router.post("/items", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.body;
-    const files: FileArray | null = req.files;
+    const files = req.files as unknown as Express.Multer.File[] as any ;
+    if (!files || files.length === 0) {
+      return res.status(400).send('No files uploaded');
+    }
     let imgErros: Array<string> = [];
-    const images = files?.["images[]"] as UploadedFile[];
+    const images = files?.["images[]" as any ] as UploadedFile[];
     if (images.length >= 2) {
       // * Check validation
       images.map((img) => {
