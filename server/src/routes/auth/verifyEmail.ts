@@ -1,34 +1,23 @@
+import { Request, Response } from "express";
+import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client';
-import { Request, Response } from 'express';
 
 const prisma = new PrismaClient();
 
 export const verifyEmail = async (req: Request, res: Response) => {
-  const { token } = req.query;
-
-  if (!token) {
-    return res.status(400).json({ error: 'Verification token is required' });
-  }
-
   try {
-    const user = await prisma.user.findFirst({
-      where: {
-        email_verify_token: token as string,
-        token_send_at: {
-          gt: new Date()
-        }
-      }
-    });
-
-    if (!user) {
-      return res.status(400).json({ 
-        error: 'Invalid or expired verification token' 
-      });
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.status(400).json({ error: "Token is required" });
     }
 
-    // Update user as verified
-    await prisma.user.update({
-      where: { id: user.id },
+    // Verify token
+    const decoded = jwt.verify(token as string, process.env.JWT_SECRET as string) as { email: string };
+    
+    // Update user
+    const user = await prisma.user.update({
+      where: { email: decoded.email },
       data: {
         email_verified_at: new Date(),
         email_verify_token: null,
@@ -36,13 +25,14 @@ export const verifyEmail = async (req: Request, res: Response) => {
       }
     });
 
-    return res.status(200).json({ 
-      message: 'Email verified successfully' 
-    });
+    if (!user) {
+      return res.status(400).json({ error: "Invalid token" });
+    }
+
+    // Redirect to success page
+    res.redirect(`${process.env.CLIENT_URL}/auth/email-verified`);
   } catch (error) {
-    console.error('Email verification error:', error);
-    return res.status(500).json({ 
-      error: 'Something went wrong during email verification' 
-    });
+    console.error("Email verification error:", error);
+    res.status(500).json({ error: "Email verification failed" });
   }
 }; 

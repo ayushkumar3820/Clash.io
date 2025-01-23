@@ -3,6 +3,7 @@ import { JWT } from "next-auth/jwt";
 import axios from "axios";
 import Credentials from "next-auth/providers/credentials";
 import { LOGIN_URL } from "@/lib/apiEndPoints";
+import { NextAuthOptions } from "next-auth";
 
 export type CustomSession = {
   user?: CustomUser;
@@ -15,6 +16,7 @@ export type CustomUser = {
   email?: string | null;
   image?: string | null;
   token?: string | null;
+  email_verified_at?: Date | null;
 };
 
 export const authOptions: AuthOptions = {
@@ -23,9 +25,9 @@ export const authOptions: AuthOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user: CustomUser }) {
+    async jwt({ token, user }: { token: JWT; user: any }) {
       if (user) {
-        token.user = user;
+        token.user = user as CustomUser;
       }
       return token;
     },
@@ -40,6 +42,13 @@ export const authOptions: AuthOptions = {
     }) {
       session.user = token.user as CustomUser;
       return session;
+    },
+    async signIn({ user }) {
+      const customUser = user as unknown as CustomUser;
+      if (!customUser.email_verified_at) {
+        throw new Error('Please verify your email first');
+      }
+      return true;
     },
   },
   providers: [
@@ -58,17 +67,17 @@ export const authOptions: AuthOptions = {
       async authorize(credentials, req) {
         try {
           const { data } = await axios.post(LOGIN_URL, credentials);
-          const user = data?.data;
-          if (user) {
-            return user;
+          if (data?.data) {
+            return {
+              ...data.data,
+              email_verified_at: data.data.email_verified_at ? new Date(data.data.email_verified_at) : null
+            };
           }
           return null;
         } catch (error: any) {
-          // Check if the error is related to email verification
           if (error.response?.data?.errors?.email) {
             throw new Error(error.response.data.errors.email);
           }
-          // For other errors
           throw new Error("Invalid credentials");
         }
       },

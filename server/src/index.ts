@@ -8,6 +8,8 @@ import * as path from "path";
 import { fileURLToPath } from "url";
 import { Server } from "socket.io";
 import { verifyEmail } from './routes/auth/verifyEmail.js';
+import { redisConnection } from './config/queue.js';
+import authRoutes from './routing/authRoutes.js';
 
 // Get current directory for ES modules
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -56,6 +58,13 @@ import "./jobs/index.js";
 // Import helper functions
 import { checkDateHourDifference } from "./helper.js";
 
+// Add after other middleware setup
+(redisConnection as any).on('error', (error: any) => {
+  console.error('Redis connection error:', error);
+});
+
+
+
 // Sample route
 app.get("/", async (req: Request, res: Response) => {
   const hoursDiff = checkDateHourDifference("2024-07-15T07:36:28.019Z");
@@ -67,6 +76,9 @@ import routes from "./routing/index.js";
 app.use("/", routes);
 
 app.get('/api/verify-email', verifyEmail);
+
+// Mount routes
+app.use('/', authRoutes);  // This will handle all auth routes
 
 // Start server
 server.listen(PORT, () => {
