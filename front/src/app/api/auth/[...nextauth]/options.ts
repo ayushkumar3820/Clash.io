@@ -56,12 +56,20 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials, req) {
-        const { data } = await axios.post(LOGIN_URL, credentials);
-        const user = data?.data;
-        if (user) {
-          return user;
-        } else {
+        try {
+          const { data } = await axios.post(LOGIN_URL, credentials);
+          const user = data?.data;
+          if (user) {
+            return user;
+          }
           return null;
+        } catch (error: any) {
+          // Check if the error is related to email verification
+          if (error.response?.data?.errors?.email) {
+            throw new Error(error.response.data.errors.email);
+          }
+          // For other errors
+          throw new Error("Invalid credentials");
         }
       },
     }),

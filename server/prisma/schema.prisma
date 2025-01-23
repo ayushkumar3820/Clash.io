@@ -24,6 +24,9 @@ model User {
   email_verify_token   String?
   created_at           DateTime  @default(now())
   Clash                Clash[]
+  emailVerified          Boolean   @default(false)
+  verificationToken      String?   @unique
+  verificationTokenExpiry DateTime?
 
   @@index([name])
 }
