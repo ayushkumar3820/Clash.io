@@ -25,20 +25,16 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }: { token: JWT; user: any }) {
       if (user) {
+        token.accessToken = user.token;
         token.user = user;
       }
       return token;
     },
-    async session({
-      session,
-      token,
-      user,
-    }: {
-      session: CustomSession;
-      token: JWT;
-      user: User;
-    }) {
-      session.user = token.user as CustomUser;
+    async session({ session, token }: { session: any; token: JWT }) {
+      if (token) {
+        session.accessToken = token.accessToken;
+        session.user = token.user as CustomUser;
+      }
       return session;
     }
   },
@@ -46,24 +42,14 @@ export const authOptions: AuthOptions = {
     Credentials({
       name: "Welcome Back",
       credentials: {
-        email: {
-          label: "Email",
-          type: "email",
-          placeholder: "Enter your email",
-        },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         try {
           const { data } = await axios.post(LOGIN_URL, credentials);
-          
           if (data?.user) {
-            return {
-              id: data.user.id.toString(),
-              name: data.user.name,
-              email: data.user.email,
-              email_verified_at: data.user.email_verified_at
-            };
+            return data.user;
           }
           return null;
         } catch (error: any) {

@@ -13,17 +13,22 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [clashes, setClashes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
     }
     if (status === "authenticated") {
-      fetchClashs().then(data => setClashes(data));
+      setLoading(true);
+      fetchClashs()
+        .then(data => setClashes(data))
+        .catch(console.error)
+        .finally(() => setLoading(false));
     }
   }, [status, router]);
 
-  if (status === "loading") {
+  if (status === "loading" || loading) {
     return <div>Loading...</div>;
   }
 

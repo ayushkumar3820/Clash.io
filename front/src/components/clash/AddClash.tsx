@@ -20,13 +20,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import axios, { AxiosError } from "axios";
+import { useSession } from "next-auth/react";
 import { CLASH_URL } from "@/lib/apiEndPoints";
 import { toast } from "sonner";
 import { CustomUser } from "@/app/api/auth/[...nextauth]/options";
 import { clearCache } from "@/app/actions/commonActions";
 
 export default function AddClash({ user }: { user: CustomUser }) {
+  const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,39 +41,57 @@ export default function AddClash({ user }: { user: CustomUser }) {
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    
     try {
-      setLoading(true);
+      const token = session?.user?.token || (session as any)?.accessToken;
+      
+      if (!token) {
+        toast.error("Authentication token missing");
+        return;
+      }
+
       const formData = new FormData();
       formData.append("title", clashData?.title ?? "");
       formData.append("description", clashData?.description ?? "");
       formData.append("expire_at", date?.toISOString() ?? "");
       if (image) formData.append("image", image);
 
-      const { data } = await axios.post(CLASH_URL, formData, {
+      const response = await fetch(CLASH_URL, {
+        method: 'POST',
         headers: {
-          Authorization: user.token,
+          'Authorization': `Bearer ${token}`
         },
+        body: formData
       });
-      setLoading(false);
-      if (data?.message) {
-        setClashData({});
-        setDate(null);
-        clearCache("dashboard");
-        toast.success(data?.message);
-        setOpen(false);
-      }
-    } catch (error) {
-      console.log("The error is ", error);
-      setLoading(false);
-      if (error instanceof AxiosError) {
-        if (error.response?.status === 422) {
-          setErrors(error.response?.data?.errors);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.errors) {
+          setErrors(data.errors);
+          toast.error("Please fix the errors");
+        } else {
+          toast.error(data.error || "Failed to create clash");
         }
-      } else {
-        toast.error("Something went wrong.please try again!");
+        return;
       }
+
+      // Success
+      setClashData({});
+      setDate(null);
+      setImage(null);
+      setOpen(false);
+      toast.success(data.message || "Clash created successfully");
+      window.location.reload();
+
+    } catch (error) {
+      console.error('Error creating clash:', error);
+      toast.error("Something went wrong. Please try again!");
+    } finally {
+      setLoading(false);
     }
   };
 

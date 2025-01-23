@@ -4,12 +4,18 @@ import { CLASH_URL } from "@/lib/apiEndPoints";
 export async function fetchClashs() {
   try {
     const session = await getSession();
-    
+    const token = session?.user?.token || session?.accessToken;
+
+    if (!token) {
+      console.error("No token found in session:", session);
+      throw new Error("No authentication token");
+    }
+
     const res = await fetch(CLASH_URL, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.user?.token}` // Add token from session
+        'Authorization': `Bearer ${token}`
       },
       cache: 'no-store'
     });
@@ -19,11 +25,7 @@ export async function fetchClashs() {
     }
 
     const response = await res.json();
-    if (response?.data) {
-      return response.data;
-    }
-
-    return [];
+    return response?.data || [];
   } catch (error) {
     console.error("Fetch error:", error);
     return [];

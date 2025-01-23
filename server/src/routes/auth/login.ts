@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 
@@ -43,13 +44,21 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Return success response
+    // Generate token
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '24h' }
+    );
+
+    // Return success response with token
     return res.status(200).json({
       message: "Login successful",
       user: {
         id: user.id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        token
       }
     });
 
