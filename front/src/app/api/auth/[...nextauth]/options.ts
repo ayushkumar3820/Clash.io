@@ -3,7 +3,6 @@ import { JWT } from "next-auth/jwt";
 import axios from "axios";
 import Credentials from "next-auth/providers/credentials";
 import { LOGIN_URL } from "@/lib/apiEndPoints";
-import { NextAuthOptions } from "next-auth";
 
 export type CustomSession = {
   user?: CustomUser;
@@ -23,11 +22,10 @@ export const authOptions: AuthOptions = {
   pages: {
     signIn: "/login",
   },
-
   callbacks: {
     async jwt({ token, user }: { token: JWT; user: any }) {
       if (user) {
-        token.user = user as CustomUser;
+        token.user = user;
       }
       return token;
     },
@@ -42,20 +40,11 @@ export const authOptions: AuthOptions = {
     }) {
       session.user = token.user as CustomUser;
       return session;
-    },
-    async signIn({ user }) {
-      const customUser = user as unknown as CustomUser;
-      if (!customUser.email_verified_at) {
-        throw new Error('Please verify your email first');
-      }
-      return true;
-    },
+    }
   },
   providers: [
     Credentials({
       name: "Welcome Back",
-      type: "credentials",
-
       credentials: {
         email: {
           label: "Email",
@@ -64,13 +53,16 @@ export const authOptions: AuthOptions = {
         },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials, req) {
+      async authorize(credentials) {
         try {
           const { data } = await axios.post(LOGIN_URL, credentials);
-          if (data?.data) {
+          
+          if (data?.user) {
             return {
-              ...data.data,
-              email_verified_at: data.data.email_verified_at ? new Date(data.data.email_verified_at) : null
+              id: data.user.id.toString(),
+              name: data.user.name,
+              email: data.user.email,
+              email_verified_at: data.user.email_verified_at
             };
           }
           return null;
@@ -82,6 +74,5 @@ export const authOptions: AuthOptions = {
         }
       },
     }),
-    // ...add more providers here
   ],
 };
