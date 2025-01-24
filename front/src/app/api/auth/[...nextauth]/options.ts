@@ -33,7 +33,7 @@ export const authOptions: AuthOptions = {
     async session({ session, token }: { session: any; token: JWT }) {
       if (token) {
         session.accessToken = token.accessToken;
-        session.user = token.user as CustomUser;
+        session.user = token.user;
       }
       return session;
     }

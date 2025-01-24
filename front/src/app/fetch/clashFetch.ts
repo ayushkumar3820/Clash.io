@@ -21,6 +21,8 @@ export async function fetchClashs() {
     });
 
     if (!res.ok) {
+      const errorData = await res.json();
+      console.error("Fetch error data:", errorData);
       throw new Error("Failed to fetch data");
     }
 
@@ -39,6 +41,8 @@ export async function fetchClash(id: number) {
 
   if (!res.ok) {
     // This will activate the closest `error.js` Error Boundary
+    const errorData = await res.json();
+    console.error("Fetch error data:", errorData);
     throw new Error("Failed to fetch data");
   }
   const response = await res.json();

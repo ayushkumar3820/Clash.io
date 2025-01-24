@@ -20,11 +20,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useSession } from "next-auth/react";
+import axios, { AxiosError } from "axios";
 import { CLASH_URL } from "@/lib/apiEndPoints";
 import { toast } from "sonner";
 import { CustomUser } from "@/app/api/auth/[...nextauth]/options";
 import { clearCache } from "@/app/actions/commonActions";
+import { useSession } from "next-auth/react";
 
 export default function AddClash({ user }: { user: CustomUser }) {
   const { data: session } = useSession();
@@ -41,57 +42,58 @@ export default function AddClash({ user }: { user: CustomUser }) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     try {
-      const token = session?.user?.token || (session as any)?.accessToken;
-      
-      if (!token) {
-        toast.error("Authentication token missing");
-        return;
-      }
-
+      setLoading(true);
       const formData = new FormData();
       formData.append("title", clashData?.title ?? "");
       formData.append("description", clashData?.description ?? "");
-      formData.append("expire_at", date?.toISOString() ?? "");
+      if (!date) {
+        toast.error("Please select a valid expiration date.");
+        setLoading(false);
+        return;
+      }
+      formData.append("expire_at", date.toISOString());
       if (image) formData.append("image", image);
 
-      const response = await fetch(CLASH_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      const token = session?.accessToken;
 
-      const data = await response.json();
+      console.log("Session data:", session);
 
-      if (!response.ok) {
-        if (data.errors) {
-          setErrors(data.errors);
-          toast.error("Please fix the errors");
-        } else {
-          toast.error(data.error || "Failed to create clash");
-        }
+      if (!token) {
+        toast.error("Authentication token missing");
+        setLoading(false);
         return;
       }
 
-      // Success
+      const response = await axios.post(CLASH_URL, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.data?.message) {
+        toast.error("Failed to create clash");
+        return;
+      }
+
+      setLoading(false);
       setClashData({});
       setDate(null);
-      setImage(null);
+      clearCache("dashboard");
+      toast.success(response.data?.message);
       setOpen(false);
-      toast.success(data.message || "Clash created successfully");
-      window.location.reload();
-
     } catch (error) {
-      console.error('Error creating clash:', error);
-      toast.error("Something went wrong. Please try again!");
-    } finally {
+      console.log("The error is ", error);
       setLoading(false);
+      if (error instanceof AxiosError) {
+        if (error.response?.status === 422) {
+          setErrors(error.response?.data?.errors);
+        }
+      } else {
+        toast.error("Something went wrong.please try again!");
+      }
     }
   };
 

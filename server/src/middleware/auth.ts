@@ -15,7 +15,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as AuthUser;
     req.user = decoded;
     next();
   } catch (error) {
